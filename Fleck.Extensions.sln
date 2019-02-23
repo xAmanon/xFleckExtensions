@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2010
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fleck.Extensions", "Fleck.Redis\Fleck.Extensions.csproj", "{FCD0B9E7-04CE-45BD-9657-D90F0D03F28F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fleck.Extensions", "Fleck.Extensions\Fleck.Extensions.csproj", "{FCD0B9E7-04CE-45BD-9657-D90F0D03F28F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleTest", "ConsoleTest\ConsoleTest.csproj", "{3D3038BF-A913-4CC4-A021-3B6B8ACCCE5A}"
 EndProject
