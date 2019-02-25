@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Fleck.Extensions.Core;
+using Fleck.Extensions.Core.Abstracts;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,18 +17,18 @@ namespace Fleck.Extensions.Redis
         /// <summary>
         /// Gets the message serialization cache containing serialized payloads for the message.
         /// </summary>
-        public SerializedSimpleMessage Message { get; }
+        public IPushMessage Message { get; }
 
-        public RedisInvocation(SerializedSimpleMessage message, IReadOnlyList<string> excludedConnectionIds)
+        public RedisInvocation(IPushMessage message, IReadOnlyList<string> excludedConnectionIds)
         {
             Message = message;
             ExcludedConnectionIds = excludedConnectionIds;
         }
 
-        public static RedisInvocation Create(Message message, IReadOnlyList<string> excludedConnectionIds = null)
+        public static RedisInvocation Create(string message, IReadOnlyList<string> excludedConnectionIds = null)
         {
             return new RedisInvocation(
-                new SerializedSimpleMessage(message),//message
+                new TextPushMessage(message),//message
                 excludedConnectionIds);
         }
     }

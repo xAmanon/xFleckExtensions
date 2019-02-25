@@ -15,7 +15,13 @@
   </ItemGroup>
   
   <ItemGroup>
-    <ProjectReference Include="..\Fleck.Redis\Fleck.Extensions.csproj" />
+    <ProjectReference Include="..\Fleck.Extensions\Fleck.Extensions.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

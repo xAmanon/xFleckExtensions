@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Fleck.Extensions.Core;
+using Fleck.Extensions.Core.Abstracts;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -55,7 +57,7 @@ namespace Fleck.Extensions
 
             this.Services.AddSingleton<IConnectionLifetimeManager, ConnectionLifetimeManager>();
             this.Services.AddSingleton<ISimpleProtocol, NewtonsoftJsonSimpleProtocol>();
-            this.Services.AddSingleton<IHubProtocolResolver, DefaultHubProtocolResolver>();
+            this.Services.AddSingleton<IUserIdProvider, DefaultUserIdProvider>();
             this.Services.AddSingleton<HaWebSocketServer, HaWebSocketServer>();
         }
 

@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Fleck.Extensions.Core.Abstracts;
+using Fleck.Extensions.Core;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StackExchange.Redis;
 using System;
@@ -29,14 +31,13 @@ namespace Fleck.Extensions.Redis
         private int _internalId;
 
         public RedisConnectionLifetimeManager(ILogger<RedisConnectionLifetimeManager> logger,
-                                       IOptions<RedisOptions> options,
-                                       IHubProtocolResolver hubProtocolResolver)
+                                       IOptions<RedisOptions> options)
         {
             _logger = logger;
             _options = options.Value;
             _ackHandler = new AckHandler();
             _channels = new RedisChannels("RedisConnectionLifetimeManager");
-            _protocol = new RedisProtocol(hubProtocolResolver.AllProtocols);
+            _protocol = new RedisProtocol();
 
             RedisLog.ConnectingToEndpoints(_logger, options.Value.Configuration.EndPoints, _serverName);
             _ = EnsureRedisServerConnection();
@@ -146,7 +147,7 @@ namespace Fleck.Extensions.Redis
             return SendGroupActionAndWaitForAck(connectionId, groupName, GroupAction.Remove);
         }
 
-        public Task SendGroupAsync(string groupName, Message message, CancellationToken cancellationToken = default)
+        public Task SendGroupAsync(string groupName, IPushMessage message, CancellationToken cancellationToken = default)
         {
             if (groupName == null)
             {
@@ -157,7 +158,7 @@ namespace Fleck.Extensions.Redis
             return PublishAsync(_channels.Group(groupName), payload);
         }
 
-        public Task SendGroupsAsync(IReadOnlyList<string> groupNames, Message message, CancellationToken cancellationToken = default)
+        public Task SendGroupsAsync(IReadOnlyList<string> groupNames, IPushMessage message, CancellationToken cancellationToken = default)
         {
             if (groupNames == null)
             {
@@ -177,7 +178,7 @@ namespace Fleck.Extensions.Redis
             return Task.WhenAll(publishTasks);
         }
 
-        public Task SendGroupExceptAsync(string groupName, Message message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
+        public Task SendGroupExceptAsync(string groupName, IPushMessage message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
         {
             if (groupName == null)
             {
@@ -188,19 +189,19 @@ namespace Fleck.Extensions.Redis
             return PublishAsync(_channels.Group(groupName), payload);
         }
 
-        public Task SendAllAsync(Message message, CancellationToken cancellationToken = default)
+        public Task SendAllAsync(IPushMessage message, CancellationToken cancellationToken = default)
         {
             var payload = _protocol.WriteInvocation(message);
             return PublishAsync(_channels.All, payload);
         }
 
-        public Task SendAllExceptAsync(Message message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
+        public Task SendAllExceptAsync(IPushMessage message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
         {
             var payload = _protocol.WriteInvocation(message, excludedConnectionIds);
             return PublishAsync(_channels.All, payload);
         }
 
-        public Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, Message message, CancellationToken cancellationToken = default)
+        public Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, IPushMessage message, CancellationToken cancellationToken = default)
         {
             if (connectionIds == null)
             {
@@ -218,7 +219,7 @@ namespace Fleck.Extensions.Redis
             return Task.WhenAll(publishTasks);
         }
 
-        public Task SendUsersAsync(IReadOnlyList<string> userIds, Message message, CancellationToken cancellationToken = default)
+        public Task SendUsersAsync(IReadOnlyList<string> userIds, IPushMessage message, CancellationToken cancellationToken = default)
         {
             if (userIds.Count > 0)
             {

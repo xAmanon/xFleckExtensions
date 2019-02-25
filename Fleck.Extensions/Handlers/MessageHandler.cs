@@ -13,7 +13,7 @@ namespace Fleck.Extensions
             var messageData = message as TData;
             if (messageData == null)
             {
-                context.Protocol.TryParseMessage(messageContent, out messageData);
+               // context.Protocol.TryParseMessage(messageContent, out messageData);
             }
             return this.Handle(messageData, context);
         }

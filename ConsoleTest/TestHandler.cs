@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KCEX.Futures.OpenApi.WebSocket
+namespace ConsoleTest
 {
     public class TestHandler : IMessageHandler
     {
@@ -15,13 +15,13 @@ namespace KCEX.Futures.OpenApi.WebSocket
             this.connectionLifetimeManager = connectionLifetimeManager;
         }
 
-        public Task<Response> HandleMessage(Message message, string messageContent, IConnectionContext context)
+        public async Task<Response> HandleMessage(Message message, string messageContent, IConnectionContext context)
         {
             Console.WriteLine(messageContent);
 
-            connectionLifetimeManager.SendAllExceptAsync(message, new string[] { context.ConnectionId });
+            await context.SendAllExceptAsync(message, new string[] { context.ConnectionId });
 
-            return Task.FromResult(Response.VoidResponse);
+            return Response.VoidResponse;
         }
     }
 }

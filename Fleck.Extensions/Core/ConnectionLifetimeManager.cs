@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Fleck.Extensions.Core.Abstracts;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -86,7 +87,7 @@ namespace Fleck.Extensions
             return Task.CompletedTask;
         }
 
-        public virtual Task SendGroupAsync(string groupName, Message message, CancellationToken cancellationToken = default)
+        public virtual Task SendGroupAsync(string groupName, IPushMessage message, CancellationToken cancellationToken = default)
         {
             if (groupName == null)
             {
@@ -100,9 +101,9 @@ namespace Fleck.Extensions
                 // group might be modified inbetween checking and sending
                 List<Task> tasks = null;
 
-                SerializedSimpleMessage serMessage = null;
+                string serMessage = null;
 
-                SendToGroupConnections(message, group, null, ref tasks,ref serMessage);
+                SendToGroupConnections(message, group, null, ref tasks, ref serMessage);
 
                 if (tasks != null)
                 {
@@ -113,12 +114,12 @@ namespace Fleck.Extensions
             return Task.CompletedTask;
         }
 
-        public virtual Task SendGroupsAsync(IReadOnlyList<string> groupNames, Message message, CancellationToken cancellationToken = default)
+        public virtual Task SendGroupsAsync(IReadOnlyList<string> groupNames, IPushMessage message, CancellationToken cancellationToken = default)
         {
             // Each task represents the list of tasks for each of the writes within a group
             List<Task> tasks = null;
 
-            SerializedSimpleMessage serMessage = null;
+            string serMessage = null;
 
             foreach (var groupName in groupNames)
             {
@@ -142,7 +143,7 @@ namespace Fleck.Extensions
             return Task.CompletedTask;
         }
 
-        public virtual Task SendGroupExceptAsync(string groupName, Message message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
+        public virtual Task SendGroupExceptAsync(string groupName, IPushMessage message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
         {
             if (groupName == null)
             {
@@ -153,7 +154,7 @@ namespace Fleck.Extensions
             if (group != null)
             {
                 List<Task> tasks = null;
-                SerializedSimpleMessage serMessage = null;
+                string serMessage = null;
                 SendToGroupConnections(message, group, connection => !excludedConnectionIds.Contains(connection.ConnectionId), ref tasks,ref serMessage);
 
                 if (tasks != null)
@@ -165,8 +166,10 @@ namespace Fleck.Extensions
             return Task.CompletedTask;
         }
 
-        private void SendToGroupConnections(Message message, ConcurrentDictionary<string, IConnectionContext> connections, Func<IConnectionContext, bool> include, ref List<Task> tasks,ref SerializedSimpleMessage serMessage)
+        private void SendToGroupConnections(IPushMessage message, ConcurrentDictionary<string, IConnectionContext> connections, Func<IConnectionContext, bool> include, ref List<Task> tasks, ref string serializedMessage)
         {
+            if (serializedMessage == null)
+                serializedMessage = message.GetMessage();
             // foreach over ConcurrentDictionary avoids allocating an enumerator
             foreach (var connection in connections)
             {
@@ -175,12 +178,7 @@ namespace Fleck.Extensions
                     continue;
                 }
 
-                if (serMessage == null)
-                {
-                    serMessage = CreateSerializedIMessage(message);
-                }
-
-                var task = connection.Value.WriteAsync(serMessage, CancellationToken.None);
+                var task = connection.Value.WriteAsync(serializedMessage, CancellationToken.None);
 
                 if (!task.IsCompleted)
                 {
@@ -194,29 +192,31 @@ namespace Fleck.Extensions
             }
         }
 
-        public virtual Task SendAllAsync(Message message, CancellationToken cancellationToken = default)
+        public virtual Task SendAllAsync(IPushMessage message, CancellationToken cancellationToken = default)
         {
             return SendToAllConnections(message, null);
         }
 
-        public virtual Task SendAllExceptAsync(Message message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
+        public virtual Task SendAllExceptAsync(IPushMessage message, IReadOnlyList<string> excludedConnectionIds, CancellationToken cancellationToken = default)
         {
             return SendToAllConnections( message, connection => !excludedConnectionIds.Contains(connection.ConnectionId));
         }
 
-        public virtual Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, Message message, CancellationToken cancellationToken = default)
+        public virtual Task SendConnectionsAsync(IReadOnlyList<string> connectionIds, IPushMessage message, CancellationToken cancellationToken = default)
         {
             return SendToAllConnections(message, connection => connectionIds.Contains(connection.ConnectionId));
         }
 
-        public virtual Task SendUsersAsync(IReadOnlyList<string> userIds, Message message, CancellationToken cancellationToken = default)
+        public virtual Task SendUsersAsync(IReadOnlyList<string> userIds, IPushMessage message, CancellationToken cancellationToken = default)
         {
             return SendToAllConnections(message, connection => userIds.Contains(connection.UserIdentifier));
         }
 
-        private Task SendToAllConnections(Message message, Func<IConnectionContext, bool> include)
+        private Task SendToAllConnections(IPushMessage message, Func<IConnectionContext, bool> include)
         {
             List<Task> tasks = null;
+
+            var serializedMessage = message.GetMessage();
 
             // foreach over HubConnectionStore avoids allocating an enumerator
             foreach (var connection in _connections)
@@ -226,7 +226,7 @@ namespace Fleck.Extensions
                     continue;
                 }
 
-                var task = connection.WriteAsync(CreateSerializedIMessage(message), CancellationToken.None);
+                var task = connection.WriteAsync(serializedMessage, CancellationToken.None);
 
                 if (!task.IsCompleted)
                 {
@@ -242,11 +242,5 @@ namespace Fleck.Extensions
             // Some connections are slow
             return Task.WhenAll(tasks);
         }
-
-        private SerializedSimpleMessage CreateSerializedIMessage(Message message)
-        {
-            return new SerializedSimpleMessage(message);
-        }
-
     }
 }

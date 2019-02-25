@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace KCEX.Futures.OpenApi.WebSocket
+namespace ConsoleTest
 {
     public class GroupHandler: MessageHandler<GroupMessage>
     {
@@ -66,7 +66,7 @@ namespace KCEX.Futures.OpenApi.WebSocket
         {
             Console.WriteLine("GroupSendHandler");
 
-            await connectionLifetimeManager.SendGroupAsync(message.GroupName, message);
+            await context.SendGroupAsync(message.GroupName, message);
 
             return Response.NullResponse;
         }

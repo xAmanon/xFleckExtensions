@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Fleck.Extensions.Core;
+using Fleck.Extensions.Core.Abstracts;
+using Fleck.Extensions.Handlers;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -16,6 +19,7 @@ namespace Fleck.Extensions
         private readonly ILoggerFactory loggerFactory;
         private readonly ISimpleProtocol simpleProtocol;
         private readonly IInvokeHandlerManager invokeHandlerManager;
+        private readonly IUserIdProvider userIdProvider;
         private readonly ILogger logger;
 
         private bool isStarted;
@@ -24,6 +28,7 @@ namespace Fleck.Extensions
             IConnectionLifetimeManager connectionLifetimeManager,
             IServiceProvider serviceProvider,
             IInvokeHandlerManager invokeHandlerManager,
+            IUserIdProvider userIdProvider,
             ILoggerFactory loggerFactory)
         {
             this.serviceConfigurationOption = option;
@@ -33,6 +38,7 @@ namespace Fleck.Extensions
             this.simpleProtocol = serviceProvider.GetRequiredService<ISimpleProtocol>();
             this.invokeHandlerManager = invokeHandlerManager;
             this.logger = loggerFactory.CreateLogger<HaWebSocketServer>();
+            this.userIdProvider = userIdProvider;
         }
 
         public void Start()
@@ -67,10 +73,7 @@ namespace Fleck.Extensions
 
         private async Task OnOpen(IWebSocketConnection socket)
         {
-            var connectionId = socket.ConnectionInfo.Id.ToString();
-
-            var context = new ConnectionContext(connectionId, socket);
-            context.Protocol = simpleProtocol;
+            var context = ConnectionContextCreator.Create(socket,connectionLifetimeManager, simpleProtocol, userIdProvider);
 
             await this.connectionLifetimeManager.OnConnectedAsync(context);
         }
@@ -88,9 +91,7 @@ namespace Fleck.Extensions
             var logger = this.loggerFactory.CreateLogger("Socket Received");
             try
             {
-                var connectionId = socket.ConnectionInfo.Id.ToString();
-                var context = new ConnectionContext(connectionId, socket);
-                context.Protocol = simpleProtocol;
+                var context = ConnectionContextCreator.Create(socket, connectionLifetimeManager, simpleProtocol, userIdProvider);
 
                 if (this.simpleProtocol.TryParseMessage(message, out Message messageData))
                 {
@@ -155,9 +156,9 @@ namespace Fleck.Extensions
             await context.WriteAsync(CreateSerializedIMessage(returnMessage), CancellationToken.None);
         }
 
-        private SerializedSimpleMessage CreateSerializedIMessage(Message message)
+        private ObjectPushMessage CreateSerializedIMessage(Message message)
         {
-            return new SerializedSimpleMessage(message);
+            return new ObjectPushMessage(message, simpleProtocol);
         }
 
         private async Task<Response> InvokeHandler(Message message, string messageContent, IConnectionContext context)

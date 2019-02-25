@@ -1,4 +1,6 @@
-﻿using Fleck.Extensions.Shared;
+﻿using Fleck.Extensions.Core;
+using Fleck.Extensions.Core.Abstracts;
+using Fleck.Extensions.Shared;
 using MessagePack;
 using Newtonsoft.Json;
 using System;
@@ -12,11 +14,16 @@ namespace Fleck.Extensions.Redis
 {
     public class RedisProtocol
     {
-        private readonly IReadOnlyList<ISimpleProtocol> _protocols;
+        //private readonly IReadOnlyList<ISimpleProtocol> _protocols;
 
-        public RedisProtocol(IReadOnlyList<ISimpleProtocol> protocols)
+        //public RedisProtocol(IReadOnlyList<ISimpleProtocol> protocols)
+        //{
+        //    _protocols = protocols;
+        //}
+
+        public RedisProtocol()
         {
-            _protocols = protocols;
+
         }
 
         // The Redis Protocol:
@@ -30,10 +37,10 @@ namespace Fleck.Extensions.Redis
         // * The "Length prefixed string" is the string format used by BinaryReader/BinaryWriter:
         //   * A 7-bit variable length integer encodes the length in bytes, followed by the encoded string in UTF-8.
 
-        public byte[] WriteInvocation(Message message) =>
+        public byte[] WriteInvocation(IPushMessage message) =>
             WriteInvocation(message, excludedConnectionIds: null);
 
-        public byte[] WriteInvocation(Message message, IReadOnlyList<string> excludedConnectionIds)
+        public byte[] WriteInvocation(IPushMessage message, IReadOnlyList<string> excludedConnectionIds)
         {
             // Written as a MessagePack 'arr' containing at least these items:
             // * A MessagePack 'arr' of 'str's representing the excluded ids
@@ -58,8 +65,7 @@ namespace Fleck.Extensions.Redis
                     MessagePackBinary.WriteArrayHeader(writer, 0);
                 }
 
-                WriteSerializedHubMessage(writer,
-                    new SerializedSimpleMessage(message));
+                WriteSerializedHubMessage(writer,message);
                 return writer.ToArray();
             }
             finally
@@ -161,39 +167,21 @@ namespace Fleck.Extensions.Redis
             return MessagePackUtil.ReadInt32(ref data);
         }
 
-        private void WriteSerializedHubMessage(Stream stream, SerializedSimpleMessage message)
+        private void WriteSerializedHubMessage(Stream stream, IPushMessage message)
         {
             // Written as a MessagePack 'map' where the keys are the name of the protocol (as a MessagePack 'str')
             // and the values are the serialized blob (as a MessagePack 'bin').
 
-            MessagePackBinary.WriteMapHeader(stream, _protocols.Count);
+            var serialized = message.GetMessage();
 
-            foreach (var protocol in _protocols)
-            {
-                MessagePackBinary.WriteString(stream, protocol.Name);
-
-                var serialized = message.GetSerializedMessage(protocol);
-
-                MessagePackBinary.WriteString(stream, serialized);
-
-                //var isArray = MemoryMarshal.TryGetArray(serialized, out var array);
-                //Debug.Assert(isArray);
-                //MessagePackBinary.WriteBytes(stream, array.Array, array.Offset, array.Count);
-            }
+            MessagePackBinary.WriteString(stream, serialized);
         }
 
-        public static SerializedSimpleMessage ReadSerializedHubMessage(ref ReadOnlyMemory<byte> data)
+        public static TextPushMessage ReadSerializedHubMessage(ref ReadOnlyMemory<byte> data)
         {
-            var count = MessagePackUtil.ReadMapHeader(ref data);
-            var serializations = new SerializedMessage[count];
-            for (var i = 0; i < count; i++)
-            {
-                var protocol = MessagePackUtil.ReadString(ref data);
-                var serialized = MessagePackUtil.ReadString(ref data);
-                serializations[i] = new SerializedMessage(protocol, serialized);
-            }
+            var serialized = MessagePackUtil.ReadString(ref data);
 
-            return new SerializedSimpleMessage(serializations);
+            return new TextPushMessage(serialized);
         }
 
         private static void ValidateArraySize(ref ReadOnlyMemory<byte> data, int expectedLength, string messageType)

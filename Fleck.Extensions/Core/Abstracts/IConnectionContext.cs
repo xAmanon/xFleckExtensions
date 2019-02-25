@@ -9,11 +9,10 @@ namespace Fleck.Extensions
 {
     public interface IConnectionContext
     {
-        ISimpleProtocol Protocol { get; set; }
         IFeatureCollection Features { get; }
         string UserIdentifier { get; set; }
         string ConnectionId { get; }
         IWebSocketConnection WebSocket { get; }
-        Task WriteAsync(SerializedSimpleMessage message, CancellationToken cancellationToken);
+        Task WriteAsync(string pushMessage, CancellationToken cancellationToken);
     }
 }

@@ -9,8 +9,6 @@ namespace Fleck.Extensions
 {
     public class ConnectionContext : IConnectionContext
     {
-        public ISimpleProtocol Protocol { get; set; }
-
         public IFeatureCollection Features { get; } = new FeatureCollection();
 
         public string UserIdentifier { get; set; }
@@ -26,10 +24,9 @@ namespace Fleck.Extensions
             this.UserIdentifier = userIdentity;
         }
 
-        public Task WriteAsync(SerializedSimpleMessage message, CancellationToken cancellationToken)
+        public Task WriteAsync(string message, CancellationToken cancellationToken)
         {
-            var msg = message.GetSerializedMessage(Protocol);
-            return this.WebSocket.Send(msg);
+            return this.WebSocket.Send(message);
         }
     }
 }
